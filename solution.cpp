@@ -5,7 +5,7 @@
 #include <cstring>
 using namespace std;
 
-class MaxFlowSolver {
+class OptimizedMaxFlow {
 private:
     struct Edge {
         int to, cap, rev;
@@ -51,7 +51,7 @@ private:
     }
     
 public:
-    MaxFlowSolver(int size) : n(size) {
+    OptimizedMaxFlow(int size) : n(size) {
         graph.resize(n);
     }
     
@@ -70,11 +70,14 @@ public:
                 int f = dfs(s, t, 1);
                 if (f == 0) break;
                 flow += f;
+                // Early termination: max flow can't exceed 3 due to degree constraint
+                if (flow >= 3) return flow;
             }
         }
     }
 };
 
+// Optimized approach: only compute max flow for pairs that are actually connected
 int main() {
     ios_base::sync_with_stdio(false);
     cin.tie(nullptr);
@@ -82,30 +85,76 @@ int main() {
     int n, m;
     cin >> n >> m;
     
-    // Store original edges
+    if (m == 0) {
+        cout << 0 << endl;
+        return 0;
+    }
+    
+    // Store original edges and build adjacency list
     vector<pair<int, int>> edges;
+    vector<vector<int>> adj(n);
+    
     for (int i = 0; i < m; i++) {
         int a, b;
         cin >> a >> b;
         a--; b--;  // Convert to 0-based
         edges.emplace_back(a, b);
+        adj[a].push_back(b);
+        adj[b].push_back(a);
     }
     
     long long total_flow = 0;
     
-    // Compute max flow for each pair (a, b) where a < b
-    for (int s = 0; s < n; s++) {
-        for (int t = s + 1; t < n; t++) {
-            MaxFlowSolver solver(n);
+    // Precompute connected components to avoid unnecessary computations
+    vector<int> component(n, -1);
+    int comp_count = 0;
+    
+    for (int i = 0; i < n; i++) {
+        if (component[i] == -1) {
+            queue<int> q;
+            q.push(i);
+            component[i] = comp_count;
             
-            // Build the flow network for this pair
-            for (const auto& edge : edges) {
-                solver.add_edge(edge.first, edge.second, 1);
-                solver.add_edge(edge.second, edge.first, 1);  // Undirected edge
+            while (!q.empty()) {
+                int v = q.front();
+                q.pop();
+                for (int u : adj[v]) {
+                    if (component[u] == -1) {
+                        component[u] = comp_count;
+                        q.push(u);
+                    }
+                }
             }
-            
-            int flow = solver.max_flow(s, t);
-            total_flow += flow;
+            comp_count++;
+        }
+    }
+    
+    // Group nodes by component
+    vector<vector<int>> comp_nodes(comp_count);
+    for (int i = 0; i < n; i++) {
+        comp_nodes[component[i]].push_back(i);
+    }
+    
+    // Compute max flow only for pairs in the same component
+    for (int c = 0; c < comp_count; c++) {
+        const auto& nodes = comp_nodes[c];
+        if (nodes.size() <= 1) continue;
+        
+        for (size_t i = 0; i < nodes.size(); i++) {
+            for (size_t j = i + 1; j < nodes.size(); j++) {
+                int s = nodes[i], t = nodes[j];
+                
+                OptimizedMaxFlow solver(n);
+                
+                // Build the flow network for this pair
+                for (const auto& edge : edges) {
+                    solver.add_edge(edge.first, edge.second, 1);
+                    solver.add_edge(edge.second, edge.first, 1);
+                }
+                
+                int flow = solver.max_flow(s, t);
+                total_flow += flow;
+            }
         }
     }
     
