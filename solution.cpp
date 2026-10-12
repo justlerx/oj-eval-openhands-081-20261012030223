@@ -5,8 +5,8 @@
 #include <cstring>
 using namespace std;
 
-// Use Dinic's algorithm but optimized for unit capacities
-class OptimizedMaxFlow {
+// Fast Dinic implementation optimized for unit capacities
+class FastMaxFlow {
 private:
     struct Edge {
         int to, cap, rev;
@@ -52,7 +52,7 @@ private:
     }
     
 public:
-    OptimizedMaxFlow(int size) : n(size) {
+    FastMaxFlow(int size) : n(size) {
         graph.resize(n);
     }
     
@@ -71,8 +71,7 @@ public:
                 int f = dfs(s, t, 1);
                 if (f == 0) break;
                 flow += f;
-                // Early termination: max flow can't exceed 3 due to degree constraint
-                if (flow >= 3) return flow;
+                if (flow >= 3) return flow;  // Early termination
             }
         }
     }
@@ -90,14 +89,13 @@ int main() {
         return 0;
     }
     
-    // Build adjacency list for connected components
-    vector<vector<int>> adj(n);
     vector<pair<int, int>> edges;
+    vector<vector<int>> adj(n);
     
     for (int i = 0; i < m; i++) {
         int a, b;
         cin >> a >> b;
-        a--; b--;  // Convert to 0-based
+        a--; b--;
         edges.emplace_back(a, b);
         adj[a].push_back(b);
         adj[b].push_back(a);
@@ -105,7 +103,7 @@ int main() {
     
     long long total_flow = 0;
     
-    // Precompute connected components
+    // Find connected components
     vector<int> component(n, -1);
     int comp_count = 0;
     
@@ -135,25 +133,23 @@ int main() {
         comp_nodes[component[i]].push_back(i);
     }
     
-    // Compute max flow only for pairs in the same component
+    // Process each component
     for (int c = 0; c < comp_count; c++) {
         const auto& nodes = comp_nodes[c];
         if (nodes.size() <= 1) continue;
         
+        // Compute all pairs but with optimizations
         for (size_t i = 0; i < nodes.size(); i++) {
             for (size_t j = i + 1; j < nodes.size(); j++) {
                 int s = nodes[i], t = nodes[j];
                 
-                OptimizedMaxFlow solver(n);
-                
-                // Build the flow network for this pair
+                FastMaxFlow solver(n);
                 for (const auto& edge : edges) {
                     solver.add_edge(edge.first, edge.second, 1);
                     solver.add_edge(edge.second, edge.first, 1);
                 }
                 
-                int flow = solver.max_flow(s, t);
-                total_flow += flow;
+                total_flow += solver.max_flow(s, t);
             }
         }
     }
