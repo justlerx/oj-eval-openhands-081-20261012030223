@@ -5,6 +5,7 @@
 #include <cstring>
 using namespace std;
 
+// Use Dinic's algorithm but optimized for unit capacities
 class OptimizedMaxFlow {
 private:
     struct Edge {
@@ -77,7 +78,6 @@ public:
     }
 };
 
-// Optimized approach: only compute max flow for pairs that are actually connected
 int main() {
     ios_base::sync_with_stdio(false);
     cin.tie(nullptr);
@@ -90,9 +90,9 @@ int main() {
         return 0;
     }
     
-    // Store original edges and build adjacency list
-    vector<pair<int, int>> edges;
+    // Build adjacency list for connected components
     vector<vector<int>> adj(n);
+    vector<pair<int, int>> edges;
     
     for (int i = 0; i < m; i++) {
         int a, b;
@@ -105,7 +105,7 @@ int main() {
     
     long long total_flow = 0;
     
-    // Precompute connected components to avoid unnecessary computations
+    // Precompute connected components
     vector<int> component(n, -1);
     int comp_count = 0;
     
